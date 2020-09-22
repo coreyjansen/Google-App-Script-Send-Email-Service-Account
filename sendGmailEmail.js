@@ -18,29 +18,44 @@ var CLIENT_EMAIL = 'XXXXXXXXXXXXXXXXXXXX.gserviceaccount.com';
  * Authorizes and makes a request to the Google Drive API.
  */
 function sendEmailGmailAPI(email) {
-var USER_EMAIL = email.sender
+  var USER_EMAIL = email.sender;
+  var ccEmailString = "";
   var service = getGmailService(USER_EMAIL);
   if (service.hasAccess()) {
-    var url = 'https://www.googleapis.com/gmail/v1/users/'+USER_EMAIL+'/messages/send';
-    var token = service.getAccessToken()
-    var subject = email.subject
-    var recieverEmail = email.recipient
-    var USER_NAME= email.sendername
-    var htmlbody = email.htmlbody
-    var ccEmail = email.cc
-    var raw = base64Encode("From: "+USER_NAME+" <"+USER_EMAIL+">\r\nTo: <"+recieverEmail+">\r\nCC: <"+ccEmail+">\r\nSubject: "+subject+"\r\nMIME-Version: 1.0\r\nContent-Type:text/html; charset=utf-8/r/n\r\n\n"+htmlbody);
-    var payload = JSON.stringify({"raw":raw })
-    
+    var url = "https://www.googleapis.com/gmail/v1/users/" + USER_EMAIL + "/messages/send";
+    var token = service.getAccessToken();
+    var subject = email.subject;
+    var emails = email.recipient.split(",");
+    var comma;
+    var receiverEmail = "";
+    for (var i = 0; i < emails.length; i++) {
+      comma = "";
+      if (i > 0) {
+        comma = " ,";
+      }
+      receiverEmail += comma + "" + emails[i] + "";
+    }
+
+    var USER_NAME = email.sendername;
+    var htmlbody = email.htmlbody;
+    var ccEmail = email.cc;
+    if (email.hasOwnProperty("cc")) {
+      ccEmailString = "\r\nCC: <" + ccEmail + ">";
+    }
+
+    var raw = GQ.base64Encode("From: " + USER_NAME + " <" + USER_EMAIL + ">" + "\r\nTo: " + receiverEmail + ccEmailString + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type:text/html; charset=utf-8/r/n\r\n\n" + htmlbody);
+    var payload = JSON.stringify({raw: raw});
+
     var options = {
       headers: {
-        Authorization: 'Bearer ' + token,
-                "content-type": "application/json"
+        Authorization: "Bearer " + token,
+        "content-type": "application/json",
       },
-       method : 'POST',
-     payload:payload
+      method: "POST",
+      payload: payload,
     };
-      var response = UrlFetchApp.fetch(url, options  )
-      Logger.log(response.getContentText()); 
+    var response = UrlFetchApp.fetch(url, options);
+    Logger.log(response.getContentText());
     var result = JSON.parse(response.getContentText());
     Logger.log(JSON.stringify(result, null, 2));
   } else {
